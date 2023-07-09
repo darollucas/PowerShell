@@ -3,7 +3,7 @@
 Gets DHCP scopes from a list of servers, compiles the data in HTML, and sends an email alert if the percentage in use exceeds a defined threshold.
 
 .DESCRIPTION
-This script retrieves DHCP scope information from a list of servers. It compiles the data into an HTML report, highlighting the percentage in use based on a threshold. If the percentage in use exceeds the threshold, it sends an email alert. The script supports Windows Server 2016 and newer.
+This script retrieves DHCP scope information from a list of servers. It prompts the user to enter the name(s) of the DHCP server(s). It then compiles the data into an HTML report, highlighting the percentage in use based on a threshold. If the percentage in use exceeds the threshold, it sends an email alert. The script supports Windows Server 2016 and newer.
 
 .COMPATIBILITY
 PowerShell 5.1 and higher. Tested against Windows Server 2016 and newer DHCP servers.
@@ -16,7 +16,7 @@ Version: 1.0
 
 .EXAMPLE
 .\Get-DHCPStats.ps1
-# Run the script with all the options set as variables in the script.
+# Run the script and enter the name(s) of the DHCP server(s) when prompted.
 
 .NOTES
 - This script requires the DhcpServer module.
@@ -25,8 +25,6 @@ Version: 1.0
 
 #>
 
-# List of DHCP servers
-$ServerList = 'TBIT-SVR-DHCP'
 # Set the output file path
 $OutputFile = "C:\DHCP_Stats.html"
 
@@ -65,7 +63,7 @@ th {
 </style>
 </head>
 <body>
-<h2>DHCP Stats Report</h2>
+<h2>DHCP Stats Report for $($ServerList -join ', ')</h2>
 "@
 
 # Prepare HTML footer
@@ -74,6 +72,15 @@ $HTMLFooter = @"
 </body>
 </html>
 "@
+
+# Prompt the user to enter the name(s) of the DHCP server(s)
+$ServerList = Read-Host -Prompt "Enter the name(s) of the DHCP server(s), separated by commas"
+
+# Convert the user input to an array
+$ServerList = $ServerList -split ',' | ForEach-Object { $_.Trim() }
+
+# Import the DhcpServer module
+Import-Module DhcpServer
 
 # Initialize the HTML table
 $HTMLTable = @"
@@ -93,9 +100,6 @@ $HTMLTable = @"
   <th>Lease Duration</th>
 </tr>
 "@
-
-# Import the DhcpServer module
-Import-Module DhcpServer
 
 # Process each DHCP server in the list
 foreach ($Server in $ServerList) {
@@ -150,5 +154,3 @@ $HTMLReport | Out-File -FilePath $OutputFile -Encoding UTF8
 
 # Open the HTML report in the default web browser
 Start-Process $OutputFile
-
-
