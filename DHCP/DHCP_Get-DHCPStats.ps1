@@ -10,8 +10,7 @@ PowerShell 5.1 and higher. Tested against Windows Server 2016 and newer DHCP ser
 
 .NOTES
 Script Name: Get-DHCPStats.ps1
-Created By: Your Name
-Date: Enter Date
+Created By: TechBase IT
 Version: 1.0
 
 .EXAMPLE
