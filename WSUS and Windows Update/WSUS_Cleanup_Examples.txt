@@ -1,0 +1,63 @@
+.EXAMPLE
+Clean-WSUS -FirstRun
+Description: Run the routines that are recommended for running this script for the first time.
+
+.EXAMPLE
+Clean-WSUS -InstallTask
+Description: Install the Scheduled task to run this script at 8AM daily with the -ScheduledRun switch.
+
+.EXAMPLE
+Clean-WSUS -HelpMe
+Description: Run the HelpMe stream to create a transcript of the session and provide troubleshooting information in a log file.
+
+.EXAMPLE
+Clean-WSUS -DisplayApplicationPoolMemory
+Description: Display the current Private Memory Limit for the WSUS Application Pool
+
+.EXAMPLE
+Clean-WSUS -SetApplicationPoolMemory 4096
+Description: Set the Private Memory Limit for the WSUS Application Pool to 4096 MB (4GB)
+
+.EXAMPLE
+Clean-WSUS -SetApplicationPoolMemory 0
+Description: Set the Private Memory Limit for the WSUS Application Pool to 0 MB (Unlimited)
+
+.EXAMPLE
+Clean-WSUS -DirtyDatabaseCheck
+Description: Checks to see if the WSUS database is in a bad state.
+
+.EXAMPLE
+Clean-WSUS -DailyRun
+Description: Run the recommended daily routines.
+
+.EXAMPLE
+Clean-WSUS -MonthlyRun
+Description: Run the recommended monthly routines.
+
+.EXAMPLE
+Clean-WSUS -QuarterlyRun
+Description: Run the recommended quarterly routines.
+
+.EXAMPLE
+Clean-WSUS -ScheduledRun
+Description: Run the recommended routines on a schedule having the script take care of all timetables.
+
+.EXAMPLE
+Clean-WSUS -RemoveWSUSDriversSQL -SaveReport TXT
+Description: Only Remove WSUS Drivers by way of SQL and save the output as TXT to the script's folder named with the date and time of execution.
+
+.EXAMPLE
+Clean-WSUS -RemoveWSUSDriversPS -MailReport HTML
+Description: Only Remove WSUS Drivers by way of PowerShell and email the output as HTML to the configured parties.
+
+.EXAMPLE
+Clean-WSUS -RemoveDeclinedWSUSUpdates -CleanUpWSUSSynchronizationLogs -WSUSDBMaintenance -WSUSServerCleanupWizard -SaveReport HTML -MailReport TXT
+Description: Remove Declined WSUS Updates, Clean Up WSUS Synchronization Logs based on the configuration variables, Run the SQL Maintenance, and run the Server Cleanup Wizard (SCW) and output to an HTML file in the scripts folder named with the date and time of execution, and then email the report in plain text to the configured parties.
+
+.EXAMPLE
+Clean-WSUS -DeclineMultipleTypesOfUpdates -ComputerObjectCleanup -SaveReport TXT -MailReport HTML
+Description: Decline superseded updates, computer object cleanup, save the output as TXT to the script's folder, and email the output as HTML to the configured parties.
+
+.EXAMPLE
+Clean-WSUS -RemoveObsoleteUpdates -CompressUpdateRevisions -DeclineMultipleTypesOfUpdates -SaveReport TXT -MailReport HTML
+Description: Remove Obsolte Updates, Compress Update Revisions, Decline superseded updates, save the output as TXT to the script's folder, and email the output as HTML to the configured parties.
