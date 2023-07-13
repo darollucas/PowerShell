@@ -16,8 +16,7 @@ Specifies the action to perform: Move or Copy.
 
 .NOTES
 Script Name: Move-DataWithRobocopy.ps1
-Created By: Your Name
-Date: Enter Date
+Created By: TechBase IT
 Version: 1.0
 
 .EXAMPLE
