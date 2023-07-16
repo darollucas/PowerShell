@@ -1,0 +1,208 @@
+INSTALL OPERATING SYSTEM
+The physical servers are not on the same VLAN as the PXE server, so they need to be built using the USB drive. At the time of this documentation, we are using Windows Server 2016 Datacenter with Desktop Experience. 
+
+**See Darren for USB drive**
+
+UPDATE OPERATING SYSTEM
+In order to get the Hyper-V Node communicating with the SCVMM server, the latest Windows Updates need to be installed on node prior to configuration. This is an essential and important step.
+
+RENAME THE SERVER AND JOIN THE DOMAIN
+Take the normal steps to rename and join the domain. The name of the Hyper-V node will be based on the cluster it is set to enter. For instance, in the case of cluster HW-IT-PVMH-HC04, the name of the node will be HW-IT-PVMH-HV4X (X representing the number of the node in the cluster). 
+
+SET PERMISSIONS IN ACTIVE DIRECTORY
+The computer object, that is created in Active Directory after joining the node to the domain, will need to be added to specific groups for configuration to be successful. Use the PowerShell command below to add to the groups:
+
+
+Install-Module ActiveDirectory
+
+$computerName = "HW-IT-PVMH-HVXX"
+$ADGroups = "HITRUST Servers -s", "HyperVServers", "WSUS - Manual Control"
+
+# Get the computer object from AD
+$computer = Get-ADComputer -Identity $computerName
+
+# Add the computer object to all groups
+$ADGroups | ForEach-Object {Add-ADGroupMember -Identity $_ -Members $computer}
+SET PERMISSIONS FOR LOCAL ADMINISTRATOR
+These accounts need to be added the local administrator group on the Hyper-V node to for configuration to be successful. Use the PowerShell command below to add the domain users to the local admin group on the node:
+
+
+$domain = "healthwise.org"
+$users = "SCVMM_HostMgmnt","veeam_backup"
+$users | ForEach-Object {net localgroup Administrators "$domain\$_" /add}
+INSTALL THE ROLES: HYPER-V, FAILOVER CLUSTER, MULTIPATH I/O (MPIO)
+Install the Server Roles for the Hyper-V Node. This will require the server to reboot, but all lines can be executed before reboot:
+
+
+#Install Hyper-V, Install Failover Clustering, MPIO
+Add-WindowsFeature -Name Hyper-V -IncludeAllSubFeature -IncludeManagementTools
+Add-WindowsFeature -Name Failover-Clustering -IncludeAllSubFeature -IncludeManagementTools
+Add-WindowsFeature -Name Multipath-IO -IncludeAllSubFeature -IncludeManagementTools
+HYPER-V CONFIGURATION
+Enable Live Migrations
+
+Simultaneous migrations set to 8.
+
+On Advanced Features, ensure that Kerberos is set for Authentication and SMB is set for Performance.
+
+Enable Storage Migrations
+
+Simultaneous migrations set to 8.
+
+Allow Enhanced Session Mode
+
+STORAGE CONFIGURATION
+The below PowerShell script configures the storage necessary for the Hyper-V node to communicate with the SCVMM server and the Pure Storage array. The script sets the name of the NICs, sets the VLAN IDs, disables IPv6 and DHCP on Storage Adapters, sets Jumbo Frames on Storage Adapters, configures iSCSI and MPIO, and connects the iSCSI Initiators to the Pure Storage iSCSI Target.
+
+Configuration on the Pure Storage array, adding the new Hyper-V node's IQN and adding to the host group, needs to be done prior to this for it to work correctly.
+
+
+#Rename NICs
+Get-NetAdapter -Name "SLOT 1 Port 1" | Disable-NetAdapter
+Get-NetAdapter -Name "SLOT 1 Port 2" | Disable-NetAdapter
+Rename-NetAdapter -Name "NIC1" -NewName "Fabric_A1"
+Rename-NetAdapter -Name "NIC2" -NewName "Fabric_A2"
+Rename-NetAdapter -Name "Slot 2 Port 1" -NewName "Fabric_B1"
+Rename-NetAdapter -Name "Slot 2 Port 2" -NewName "Fabric_B2"
+
+#CONFIGURE A FABRIC
+#Set NIC VLAN ID
+Set-NetAdapterAdvancedProperty -Name "Fabric_A1" -DisplayName "VLAN ID" -DisplayValue 21
+Set-NetAdapterAdvancedProperty -Name "Fabric_A2" -DisplayName "VLAN ID" -DisplayValue 21
+
+#CONFIGURE B FABRIC (STORAGE ADAPTERS)
+#SET IP
+$B1_IP = '192.168.3.1XX'
+$B2_IP = '192.168.4.1XX'
+
+#Disable IPv6 for Storage Adapters
+Disable-NetAdapterBinding -Name Fabric_B1 -ComponentID ms_tcpip6
+Disable-NetAdapterBinding -Name Fabric_B2 -ComponentID ms_tcpip6
+
+#Disable DHCP for Storage Adapters
+Set-NetIPInterface -InterfaceAlias Fabric_B1 -Dhcp Disabled
+Set-NetIPInterface -InterfaceAlias Fabric_B2 -Dhcp Disabled
+
+#Set Adapter Properties Jumbo Packets
+set-NetAdapterAdvancedProperty -Name "Fabric_B1" -RegistryKeyword "*JumboPacket" -RegistryValue "9014"
+set-NetAdapterAdvancedProperty -Name "Fabric_B2" -RegistryKeyword "*JumboPacket" -RegistryValue "9014"
+
+#Set Adapter VLAN IDs
+Set-NetAdapterAdvancedProperty -Name "Fabric_B1" -DisplayName "VLAN ID" -DisplayValue 1923
+Set-NetAdapterAdvancedProperty -Name "Fabric_B2" -DisplayName "VLAN ID" -DisplayValue 1924
+
+#Set IP Addresses (Review IP Addresses before running)
+New-NetIPAddress -InterfaceAlias 'Fabric_B1' -IPAddress $B1_IP -PrefixLength 24
+New-NetIPAddress -InterfaceAlias 'Fabric_B2' -IPAddress $B2_IP -PrefixLength 24
+
+#Confirm Settings Jumbo
+Get-NetAdapter -Name Fabric_B1, Fabric_B2 | Get-NetAdapterAdvancedProperty | Where-Object{ $_.DisplayName -like "*jumbo*"}
+
+#Setup iSCSI Connection Service
+set-service -name msiscsi -startuptype automatic
+start-service msiscsi
+get-service -name msiscsi
+ 
+#get host IQN
+Get-InitiatorPort
+
+#Add iSCSI target
+New-iscsitargetportal -TargetPortalAddress 192.168.3.90
+New-iscsitargetportal -TargetPortalAddress 192.168.4.90
+$pureiqn = Get-IscsiTarget | select NodeAddress| where{$_ -like "*pure*"}
+$ip1923 = Get-NetIPAddress | where{$_.IPAddress -like "192.168.3.*"}
+$ip1924 = Get-NetIPAddress | where{$_.IPAddress -like "192.168.4.*"}
+
+Connect-IscsiTarget -NodeAddress $pureiqn.NodeAddress -IsPersistent $true -IsMultipathEnabled $true -InitiatorPortalAddress $ip1923.IPAddress -TargetPortalAddress 192.168.3.90
+Connect-IscsiTarget -NodeAddress $pureiqn.NodeAddress -IsPersistent $true -IsMultipathEnabled $true -InitiatorPortalAddress $ip1923.IPAddress -TargetPortalAddress 192.168.3.91
+Connect-IscsiTarget -NodeAddress $pureiqn.NodeAddress -IsPersistent $true -IsMultipathEnabled $true -InitiatorPortalAddress $ip1924.IPAddress -TargetPortalAddress 192.168.4.90
+Connect-IscsiTarget -NodeAddress $pureiqn.NodeAddress -IsPersistent $true -IsMultipathEnabled $true -InitiatorPortalAddress $ip1924.IPAddress -TargetPortalAddress 192.168.4.91
+ 
+#Check status of MPIO
+Get-MPIOAvailableHW
+ 
+#Enable MPIO for iSCSI
+Enable-MSDSMAutomaticClaim -BusType "iSCSI"
+Mpclaim.exe -s -d
+
+#Change Load balancing policy to LQD 
+Mpclaim.exe -l -m 4
+
+#Show all disks
+Get-disk
+
+#Retrieve Available MPIO Devices (Pure should not be in the list)
+Get-MSDSMSupportedHw
+
+#Add New MPIO Device (Pure should be the only one in the list after this)
+New-MSDSMSupportedHw -VendorId PURE -ProductId FlashArray
+Remove-MSDSMSupportedHw -VendorId 'Vendor*' -ProductId 'Product*'
+Get-MSDSMSupportedHw
+
+#Updating MPIO Timers
+Set-MPIOSetting -NewPathRecoveryInterval 20 -CustomPathRecovery Enabled -NewPDORemovePeriod 30 -NewDiskTimeout 60 -NewPathVerificationState Disabled
+
+#Set the Power Plan to High Performance on Windows Server. This command will cause a network adapter reset unless the -NoRestartswitch is used. If -NoRestart is used, you must manually restart the network adapter via the Windows UI or script to reset the network adapter and activate the power management setting
+$p = Get-CimInstance -Name root\cimv2\power -Class win32_PowerPlan -Filter "ElementName = 'High Performance'"
+powercfg /setactive ([string]$p.InstanceID).Replace("Microsoft:PowerPlan\{","").Replace("}","")
+
+#Disable Network Adapter Power Management
+Disable-NetAdapterPowerManagement -Name "Fabric_B1"
+Disable-NetAdapterPowerManagement -Name "Fabric_B2"
+ 
+
+SCVMM Configuration
+Open SCVMM and do the following:
+
+Add Hyper-V Node to SCVMM
+
+Ensure that the Fabric_Ax adapters are marked as “Used for Management” on the hardware properties. VMM automatically marks this property based on whether the IP address reported on the adapter is resolvable by DNS, but we need to do our due diligence here and ensure that both Fabric_A1 and Fabric_A2 are set with the “Used for Management” option checked.
+
+Right-Click on Hyper-V node in SCVMM, go to “Hardware” scroll to the bottom and look for “Network Adapters”
+
+Add iDRAC configuration to Hyper-V node in SCVMM
+
+Right-Click on Hyper-V node in SCVMM, go to “Hardware” scroll to the bottom and look for “BMC Settings”
+
+Use the IP address of iDRAC and choose the “iDRAC” Run-As Account
+
+Set Storage Classification on Remote Storage devices
+
+Right-Click on the Hyper-V node in SCVMM, go to Storage option and look for the LUNs
+
+Change the classification to “Pure Storage SAN”
+
+Deploy the Logical Switch
+
+Right-Click on the Hyper-V node in SCVMM, go to “Virtual Switches”
+
+Click “New Virtual Switch” and select “New Logical Switch”
+
+Ensure that Fabric_A1 is added and add Fabric_A2 by clicking the Add button to the right
+
+Press Ok
+
+Set Static IP for Management vNIC
+
+The vNIC that is deployed for Host Management needs to have the static IP set
+
+
+$Adapter = Get-NetAdapter -Name "vEthernet (Management)"
+New-NetIPAddress -IPAddress 10.2.1.1XX -DefaultGateway 10.2.1.254 -PrefixLength 24 -InterfaceIndex $Adapter.InterfaceIndex
+Set-DNSClientServerAddress -InterfaceIndex $Adapter.InterfaceIndex -ServerAddresses 10.2.1.2,10.2.1.1,10.2.62.1
+ipconfig /flushdns
+ipconfig /registerdns
+Add the node to the cluster
+
+Disable the Fabric_B NICs before adding the node to the cluster
+
+
+Add-ClusterNode -Name "HW-IT-PVMH-HVXX" -Cluster "HW-IT-PVMH-HCXX"
+ 
+
+FABRIC A NETWORK CONFIGURATION
+Fabric A needs to be on VLAN 21 to communicate with SCVMM initially. However, once the node is fully functional in SCVMM and the cluster, the Fabric A NICs need to be set back to VLAN 0 for PXE to work for VMs on that Node. This is a very important task to complete.
+
+
+Set-NetAdapterAdvancedProperty -Name "Fabric_A1" -DisplayName "VLAN ID" -DisplayValue 0
+Set-NetAdapterAdvancedProperty -Name "Fabric_A2" -DisplayName "VLAN ID" -DisplayValue 0
