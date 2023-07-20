@@ -3,7 +3,7 @@
 Changes the Remote Desktop Protocol (RDP) port on a Windows computer.
 
 .DESCRIPTION
-This script allows you to change the RDP port on a Windows computer. It checks if Remote Desktop is enabled, enables it if necessary, prompts the user to specify a new RDP port (default is 3389), updates the port in the registry and the Windows Firewall rule, provides instructions for updating the port on the hardware firewall for external connections, and offers the option to restart the computer.
+This script allows you to change the RDP port on a Windows computer. It checks if Remote Desktop is enabled, enables it if necessary, prompts the user to specify a new RDP port (default is 3389), updates the port in the registry, creates or updates the Windows Firewall rule for RDP, provides instructions for updating the port on the hardware firewall for external connections, and offers the option to restart the computer.
 
 .NOTES
 - Run this script with administrative privileges.
@@ -32,9 +32,13 @@ if ([string]::IsNullOrWhiteSpace($rdpPort)) {
 # Update the RDP port in the registry
 Set-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\Terminal Server\WinStations\RDP-Tcp" -Name "PortNumber" -Value $rdpPort
 
-# Update the Windows Firewall rule for RDP
-$fwRule = Get-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)"
-Set-NetFirewallRule -DisplayName $fwRule.DisplayName -Enabled True -Action Allow -LocalPort $rdpPort
+# Enable the Windows Firewall rule for RDP and set the port
+$rdpFirewallRule = Get-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" -ErrorAction SilentlyContinue
+if ($rdpFirewallRule) {
+    Set-NetFirewallRule -DisplayName $rdpFirewallRule.DisplayName -Enabled True -Action Allow -LocalPort $rdpPort
+} else {
+    New-NetFirewallRule -DisplayName "Remote Desktop - User Mode (TCP-In)" -Direction Inbound -Protocol TCP -LocalPort $rdpPort -Action Allow
+}
 
 # Inform the user about changing the port on the hardware firewall for external connections
 Write-Host "The RDP port has been changed to $rdpPort in the registry and the Windows Firewall."
