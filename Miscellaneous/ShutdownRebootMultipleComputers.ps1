@@ -5,7 +5,15 @@ Shutdown or reboot multiple computers on a domain infrastructure.
 .DESCRIPTION
 This PowerShell script allows you to shutdown or reboot multiple computers on a domain infrastructure. You can specify the computer names and choose whether to perform a shutdown or reboot action.
 
+.REQUIREMENTS AND PREREQUISITES
+- The script should be executed from a computer that has administrative privileges on the target remote machines.
+- Ensure you have proper network connectivity to reach the remote computers.
+- The target remote computers should have PowerShell remoting enabled.
+- Make sure you have permissions to shutdown or reboot remote computers.
+- Ensure that you enter the correct computer names and that they are online and reachable.
+
 .NOTES
+- If the script encounters any issues, verify the infrastructure requirements and prerequisites mentioned above.
 - Run this script with administrative privileges.
 - Make sure you have proper permissions to shutdown or reboot remote computers.
 
