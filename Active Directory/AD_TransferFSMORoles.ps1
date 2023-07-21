@@ -14,7 +14,7 @@ This PowerShell script allows you to transfer or seize specific FSMO (Flexible S
 $CurrentFSMORoles = Get-ADDomain | Select-Object InfrastructureMaster, RIDMaster, PDCEmulator, DomainNamingMaster, SchemaMaster
 
 Write-Host "Current FSMO Roles:"
-$CurrentFSMORoles | Format-Table
+$CurrentFSMORoles | Format-Table -AutoSize
 
 # Prompt user to select the role to transfer or seize
 $selectedRole = 0
@@ -72,6 +72,9 @@ if (-not (Get-ADDomainController -Filter {Name -eq $TargetDC})) {
     return
 }
 
+# Prompt user to choose to force the transfer or seize
+$Action = Read-Host "Do you want to (T)ransfer or (S)eize FSMO roles?:"
+
 # Function to transfer or seize a specific FSMO role
 function Move-FSMORole {
     param (
@@ -83,8 +86,6 @@ function Move-FSMORole {
         [string]$TargetDC
     )
 
-    $forceAction = if ($Action -eq "Seize") { "-Force" } else { $null }
-
     Write-Host "$Action FSMO Role: $Role"
     if ($Action -eq "Seize") {
         Move-ADDirectoryServerOperationMasterRole -Identity $TargetDC -OperationMasterRole $Role -Force
@@ -94,23 +95,22 @@ function Move-FSMORole {
 }
 
 # Transfer or seize the selected FSMO role(s)
-switch ($selectedRole) {
-    "All" {
-        Write-Host "You selected to transfer or seize all roles."
-        Write-Host "Transferring all FSMO roles to $TargetDC..."
-        Move-FSMORole -Role "InfrastructureMaster" -Action "Transfer" -TargetDC $TargetDC
-        Move-FSMORole -Role "RIDMaster" -Action "Transfer" -TargetDC $TargetDC
-        Move-FSMORole -Role "PDCEmulator" -Action "Transfer" -TargetDC $TargetDC
-        Move-FSMORole -Role "DomainNamingMaster" -Action "Transfer" -TargetDC $TargetDC
-        Move-FSMORole -Role "SchemaMaster" -Action "Transfer" -TargetDC $TargetDC
-    }
-    default {
-        Write-Host "You selected to transfer or seize a specific role."
-        Move-FSMORole -Role $selectedRole -Action "Transfer" -TargetDC $TargetDC
-    }
+if ($selectedRole -eq "All") {
+    Write-Host "You selected to transfer or seize all roles."
+    Write-Host "Transferring all FSMO roles to $TargetDC..."
+    Move-FSMORole -Role "InfrastructureMaster" -Action $Action -TargetDC $TargetDC
+    Move-FSMORole -Role "RIDMaster" -Action $Action -TargetDC $TargetDC
+    Move-FSMORole -Role "PDCEmulator" -Action $Action -TargetDC $TargetDC
+    Move-FSMORole -Role "DomainNamingMaster" -Action $Action -TargetDC $TargetDC
+    Move-FSMORole -Role "SchemaMaster" -Action $Action -TargetDC $TargetDC
+}
+else {
+    Write-Host "You selected to transfer or seize a specific role."
+    Move-FSMORole -Role $selectedRole -Action $Action -TargetDC $TargetDC
 }
 
 # Display the updated FSMO roles after the transfer or seizure
-$UpdatedFSMORoles = netdom query fsmo | Out-String
+$UpdatedFSMORoles = Get-ADDomain | Select-Object InfrastructureMaster, RIDMaster, PDCEmulator, DomainNamingMaster, SchemaMaster
+
 Write-Host "Updated FSMO Roles:"
-Write-Host $UpdatedFSMORoles
+$UpdatedFSMORoles | Format-Table -AutoSize
