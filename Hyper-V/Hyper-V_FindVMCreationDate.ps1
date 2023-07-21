@@ -58,7 +58,7 @@ foreach($x in $vminfo)
             'Day' = (Get-Date $creationTime).Day
             'Year' = (Get-Date $creationTime).Year
             'Time' = (Get-Date $creationTime).ToString("hh:mm:ss tt")
-        } | Select 'VM Name','Month','Day','Year','Time'
+        } | Select-Object 'VM Name','Month','Day','Year','Time'
     }
 }
 
