@@ -7,6 +7,10 @@
     The output format can be either console, text file, CSV, or HTML.
     System-created VMs, like "MicrosoftUEFICertificateAuthority" and "OpenSourceShieldedVM", are excluded.
     VMs with null creation times are also excluded.
+.NOTES
+    Script Name: Hyper-V_FindVMCreationDate.ps1
+    Created By: TechBaes IT
+    Version: 1.
 #>
 
 param([string]$hostName = (Read-Host "Please enter the Hyper-V host name"), 
