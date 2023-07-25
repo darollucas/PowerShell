@@ -1,0 +1,16 @@
+{
+  "ExpandedNodes": [
+    "",
+    "\\DHCP",
+    "\\DNS",
+    "\\Hyper-V",
+    "\\Maintenance",
+    "\\Miscellaneous",
+    "\\Robocopy",
+    "\\Security",
+    "\\Windows Server",
+    "\\WSUS and Windows Update"
+  ],
+  "SelectedNode": "\\Windows Server",
+  "PreviewInSolutionExplorer": false
+}
