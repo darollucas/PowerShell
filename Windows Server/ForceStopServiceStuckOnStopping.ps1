@@ -8,7 +8,7 @@ The script is interactive and prompts the user to type the service name. It then
 .PARAMETER None
 
 .EXAMPLE
-.\Kill-StuckService.ps1
+.\ForceStopServiceStuckOnStopping.ps1
 
 #>
 
