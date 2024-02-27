@@ -7,7 +7,7 @@ The script verifies the FSMO roles at both the forest and domain levels. It chec
 
 .NOTES
 Script Name: FixFSMORoles.ps1
-Created By: TechBaes IT
+Created By: TechBase IT
 Version: 1.0
 
 .EXAMPLE
