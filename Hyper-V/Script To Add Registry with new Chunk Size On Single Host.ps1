@@ -1,3 +1,8 @@
+# As a prerequisite to start converting VMware VMs to Hyper-V four times faster, upgrade to SCVMM 2022 UR2 or later.
+# As part of SCVMM 2022 UR2, a new registry named V2VTransferChunkSizeBytes is introduced at HKLM:\SOFTWARE\Microsoft\Microsoft System Center Virtual Machine Manager Agent in the Hyper-V hosts managed by SCVMM.
+# To set this registry value in a single host and not on all the hosts, run this script from the VMM Console.
+# After setting this registry value, if you remove any Hyper-V host(s) from SCVMM, stale entries for this registry might remain. If the same host(s) is re-added to SCVMM, the previous value of registry V2VTransferChunkSizeBytes will be honored.
+# https://learn.microsoft.com/en-us/system-center/vmm/vm-convert-vmware?view=sc-vmm-2022
 	$VMHost = Get-SCVMHost -ComputerName "<hostname>" -VMMServer "<VMMServer>"
 	If($VMHost.VirtualizationPlatform -eq "HyperV")
 	{
