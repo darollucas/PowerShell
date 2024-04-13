@@ -1,0 +1,15 @@
+In case of Azure Stack HCI clusters, the Azure Arc agent is already included as part of the operating system of cluster nodes, so there's no need to install it. You activate it by registering your Azure Stack HCI cluster with Azure Arc, which automatically enables Azure monitoring, support, and billing.
+In each of the Azure Arc-enabled scenarios, Azure Arc leverages locally installed agents to establish a logical connection between the local resource and Azure. By establishing this connection, a non-Azure resource automatically becomes a hybrid Azure resource with its own identity, represented by an Azure Resource Manager resource ID. Azure Resource Manager serves as the management interface that allows you to create, modify, and delete Azure resources. Once you Arc-enable a non-Azure resource, you can use Azure Resource Manager to manage and monitor its configuration and operations.
+
+Azure Arc resource bridge is a Microsoft managed product that is part of the core Azure Arc platform. It is designed to host other Azure Arc services.
+
+Resource Bridge needs to be deployed before Azure Stack HCI build https://www.silviodibenedetto.com/azure-stack-hci-extend-the-infrastructure-with-resource-bridge/
+
+Run the Environment checker to ensure that your environment meets the outbound network connectivity requirements for firewall rules https://learn.microsoft.com/en-us/azure-stack/hci/manage/use-environment-checker
+
+Make sure that the local administrator password follows Azure password length and complexity requirements. Use a password that is at least 12 characters long and contains a lowercase character, an uppercase character, a numeral, and a special character.
+
+Do not install Windows Updates using SConfig. Updates are installed during the deployment. Installing updates using SConfig causes a deployment failure.
+
+Do not join the servers with the Azure Stack HCI operating system installed, to the Active Directory domain prior to cloud deployment. Cluster nodes are automatically joined to a domain during the Deployment via Azure portal.
+
