@@ -13,3 +13,12 @@ Do not install Windows Updates using SConfig. Updates are installed during the d
 
 Do not join the servers with the Azure Stack HCI operating system installed, to the Active Directory domain prior to cloud deployment. Cluster nodes are automatically joined to a domain during the Deployment via Azure portal.
 
+Step 1: Prepare Active Directory for Azure Stack HCI, version 23H2 deployment - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/deployment-prep-active-directory
+Step 2: Download Azure Stack HCI, version 23H2 software - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/download-azure-stack-hci-23h2-software
+Step 3: Install the Azure Stack HCI, version 23H2 operating system - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/deployment-install-os
+Step 4: Register your servers and assign permissions for Azure Stack HCI, version 23H2 deployment - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/deployment-arc-register-server-permissions
+Step 5: Deploy an Azure Stack HCI, version 23H2 system using the Azure portal - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/deploy-via-portal
+Step 6: Create volumes on Azure Stack HCI and Windows Server clusters - https://learn.microsoft.com/en-us/azure-stack/hci/manage/create-volumes
+Step 7: Create storage path for Azure Stack HCI - https://learn.microsoft.com/en-us/azure-stack/hci/manage/create-storage-path?tabs=azurecli
+Step 8: Create a VM image using Azure Marketplace images - https://learn.microsoft.com/en-us/azure-stack/hci/manage/virtual-machine-image-azure-marketplace?tabs=azurecli
+Step 8.1: Create a VM image using images in a local share - https://learn.microsoft.com/en-us/azure-stack/hci/manage/virtual-machine-image-local-share?tabs=azurecli

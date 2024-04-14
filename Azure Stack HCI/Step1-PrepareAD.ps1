@@ -12,6 +12,9 @@ PS> .\PrepareADForAzureStackHCI.ps1
 Author: TechBase IT
 Date: 04/13/2024
 This script must be run with Domain Admin privileges or equivalent permissions necessary to modify Active Directory objects. Follows Microsoft's documentation for preparing Active Directory for Azure Stack HCI deployment.
+If you are repairing a single server, do not delete the existing OU. If the server volumes are encrypted, deleting the OU removes the BitLocker recovery keys.
+When group policy inheritance is blocked at the OU level, enforced GPO's aren't blocked. Ensure that any applicable GPO, which are enforced, are also blocked using other methods, for example, using WMI Filters or security groups.
+Deployment Checklist - https://learn.microsoft.com/en-us/azure-stack/hci/deploy/deployment-prerequisites#complete-deployment-checklist
 #>
 
 # Ensure running as Administrator
