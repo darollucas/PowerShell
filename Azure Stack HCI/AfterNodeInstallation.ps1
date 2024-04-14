@@ -24,6 +24,9 @@ if (-not ([Security.Principal.WindowsPrincipal][Security.Principal.WindowsIdenti
 # Configure NTP time server
 Write-Host "Configuring NTP time server..."
 w32tm /config /manualpeerlist:"0.at.pool.ntp.org 1.at.pool.ntp.org 2.at.pool.ntp.org 3.at.pool.ntp.org" /syncfromflags:manual /update
+Stop-Service -Name w32time -Force
+Start-Service -Name w32time
+w32tm /query /source
 w32tm /query /status
 Write-Host "NTP time server configuration completed."
 
