@@ -5,7 +5,7 @@ Azure Arc resource bridge is a Microsoft managed product that is part of the cor
 
 Resource Bridge needs to be deployed before Azure Stack HCI build https://www.silviodibenedetto.com/azure-stack-hci-extend-the-infrastructure-with-resource-bridge/
 
-Run the Environment checker to ensure that your environment meets the outbound network connectivity requirements for firewall rules https://learn.microsoft.com/en-us/azure-stack/hci/manage/use-environment-checker
+Run the Environment checker to ensure that the client's environment meets the outbound network connectivity requirements for firewall rules https://learn.microsoft.com/en-us/azure-stack/hci/manage/use-environment-checker
 
 Make sure that the local administrator password follows Azure password length and complexity requirements. Use a password that is at least 12 characters long and contains a lowercase character, an uppercase character, a numeral, and a special character.
 
