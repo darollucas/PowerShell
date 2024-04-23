@@ -3,12 +3,12 @@
 Displays last logon date of Active Directory user accounts and optionally exports the data to a CSV file.
 
 .DESCRIPTION
-This script retrieves and displays the last logon date for Active Directory user accounts. Users have the option to display all enabled user accounts or select specific users based on their names. There is also an option to export the displayed data to a CSV file.
+This script retrieves and displays the last logon date for Active Directory user accounts. Users have the option to display information for all enabled user accounts (A) or select specific users (S) based on their names. There is also an option to export the displayed data to a CSV file.
 
 .EXAMPLE
 PS> .\Get-UserLastLogon.ps1
 
-This command runs the script, displaying all enabled user accounts and their last logon dates, with an option to export.
+This command runs the script, allowing the user to choose between displaying all enabled user accounts and their last logon dates or specifying users, with an option to export.
 
 .NOTES
 Author: TechBase IT
@@ -30,11 +30,14 @@ function Get-UserDetails {
         # Get all enabled users if no specific user names are provided
         $userDetails = Get-ADUser -Property LastLogonDate -Filter {Enabled -eq $true} | Select-Object Name, LastLogonDate
     } else {
-        # Get specified users, ensuring case-insensitive comparison and trimming spaces
-        foreach ($userName in $UserNames) {
+        # Split the input string into an array of usernames, trimming spaces, and ensuring case-insensitive comparison
+        $userNamesArray = $UserNames.Split(',')
+        foreach ($userName in $userNamesArray) {
             $trimmedName = $userName.Trim()
             $foundUsers = Get-ADUser -Property LastLogonDate -Filter "Enabled -eq 'True' -and Name -like '*$trimmedName*'" | Select-Object Name, LastLogonDate
-            $userDetails += $foundUsers
+            if ($foundUsers) {
+                $userDetails += $foundUsers
+            }
         }
     }
     
@@ -42,25 +45,28 @@ function Get-UserDetails {
 }
 
 # Main script logic
-$allUsers = Read-Host "Do you want to display information for all users? (Y/N)"
+$userChoice = Read-Host "Do you want to display information for All Users (A) or Specific Users (S)?"
 
-if ($allUsers -eq 'Y' -or $allUsers -eq 'y') {
+if ($userChoice -eq 'A') {
     $userDetails = Get-UserDetails
-} else {
+} elseif ($userChoice -eq 'S') {
     $specificUserNames = Read-Host "Enter specific user names (comma-separated)"
-    $userNamesArray = $specificUserNames.Split(',') | ForEach-Object { $_.Trim() }
-    $userDetails = Get-UserDetails -UserNames $userNamesArray
+    $userDetails = Get-UserDetails -UserNames $specificUserNames
+} else {
+    Write-Host "Invalid choice. Exiting script." -ForegroundColor Red
+    exit
 }
 
-# Display the user details
+# Display the list in the PowerShell window
 $userDetails | Format-Table -AutoSize
 
-# Ask if the user wants to export the data to a CSV file
+# Ask the user if they want to export the list to a CSV file
 $exportCSV = Read-Host "Do you want to export the list to a CSV file? (Y/N)"
-If ($exportCSV -eq 'Y' -or $exportCSV -eq 'y') {
+
+if ($exportCSV -eq 'Y' -or $exportCSV -eq 'y') {
     $csvPath = Read-Host "Enter the full path for the CSV file (e.g., C:\temp\lastlogon.csv)"
     $userDetails | Export-Csv -Path $csvPath -NoTypeInformation
     Write-Host "List exported to '$csvPath'." -ForegroundColor Green
-} Else {
+} else {
     Write-Host "Export canceled." -ForegroundColor Yellow
 }
