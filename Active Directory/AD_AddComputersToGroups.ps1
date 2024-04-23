@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-Adds specified Active Directory computer objects to a designated group, offering options to select from a CSV file or manually from domain-crawled results.
+Adds specified Active Directory computer objects to a designated group, offering options to select from a CSV file or manually enter object names.
 
 .DESCRIPTION
-This script adds selected Active Directory computer objects to a specified AD group. It prompts the user to choose between selecting object names from a provided CSV file or manually from a list of all computer objects identified within the current domain. The script automatically identifies the working domain. If the specified group doesn't exist, it offers to create it based on user input. Designed for flexibility across different infrastructures.
+This script adds selected Active Directory computer objects to a specified AD group. It prompts the user to choose between selecting object names from a provided CSV file or manually entering the names of the computer objects identified within the current domain. The script automatically identifies the working domain. If the specified group doesn't exist, it offers to create it based on user input. Designed for flexibility across different infrastructures.
 
 .NOTES
 Author: TechBase IT
@@ -27,9 +27,6 @@ if (-not (Get-Module -ListAvailable -Name ActiveDirectory)) {
 # Prompt user for input method
 $method = Read-Host "Do you want to crawl the domain for computers (D) or use a CSV file (C)? Enter 'D' for domain crawl or 'C' for CSV"
 
-# Initialize variable
-$ADObjects = @()
-
 if ($method.ToUpper() -eq 'C') {
     # Prompt for CSV file path
     $CSVFilePath = Read-Host "Enter the full path to the CSV file"
@@ -40,36 +37,47 @@ if ($method.ToUpper() -eq 'C') {
     # Import AD objects from CSV
     $ADObjects = Import-Csv -Path $CSVFilePath | ForEach-Object { Get-ADComputer $_.Name }
 } elseif ($method.ToUpper() -eq 'D') {
-    # Automatically identify AD computer objects within the current domain
-    $ADObjects = Get-ADComputer -Filter * -Property Name | Select-Object -Property Name
-    # Display the objects and ask the user to select which ones to add
-    $ADObjects | ForEach-Object { Write-Host "$($_.Name)" }
-    $selectedNames = Read-Host "Enter the names of the computers to add to the group, separated by commas"
-    $selectedNamesArray = $selectedNames -split ','
-    $ADObjects = $selectedNamesArray.Trim() | ForEach-Object { Get-ADComputer $_ }
+    # Prompt the user to enter the computer names, comma-separated
+    $computerNamesInput = Read-Host "Enter the computer object names you want to add to the group, separated by commas"
+    $computerNames = $computerNamesInput -split ',' | ForEach-Object { $_.Trim() }
+
+    # Retrieve AD computer objects based on user input
+    $ADObjects = $computerNames | ForEach-Object {
+        try {
+            Get-ADComputer -Identity $_
+        } catch {
+            Write-Warning "Failed to find AD computer with name $_"
+        }
+    }
 }
 
-# Prompt for group name and check if it exists or needs to be created
-$GroupName = Read-Host "Enter the AD group name"
-$Group = Get-ADGroup -Filter { Name -eq $GroupName } -ErrorAction SilentlyContinue
+# Check if any ADObjects were retrieved or specified
+if ($ADObjects.Count -eq 0) {
+    Write-Error "No Active Directory computer objects were specified or found."
+    exit
+}
 
-if (-not $Group) {
-    $createGroup = Read-Host "Group '$GroupName' does not exist. Do you want to create it? (Y/N)"
+# Get or create the AD group
+$groupName = Read-Host "Please enter the AD group name"
+$group = Get-ADGroup -Filter { Name -eq $groupName } -ErrorAction SilentlyContinue
+
+if (-not $group) {
+    $createGroup = Read-Host "Group '$groupName' does not exist. Do you want to create it? (Y/N)"
     if ($createGroup.ToUpper() -eq 'Y') {
-        New-ADGroup -Name $GroupName -GroupScope Global -Path "CN=Users,$((Get-ADDomain).DistinguishedName)" -ErrorAction Stop
-        Write-Host "Group '$GroupName' created successfully."
+        New-ADGroup -Name $groupName -GroupScope Global -Path "CN=Users,DC=example,DC=com" # Adjust path as needed
+        $group = Get-ADGroup $groupName
     } else {
-        Write-Host "Exiting script."
+        Write-Error "Group creation aborted by user."
         exit
     }
 }
 
-# Add selected computer objects to the group
-foreach ($Object in $ADObjects) {
+# Add computer objects to the group
+foreach ($obj in $ADObjects) {
     try {
-        Add-ADGroupMember -Identity $GroupName -Members $Object -ErrorAction Stop
-        Write-Host "Added $($Object.Name) to $GroupName successfully."
+        Add-ADGroupMember -Identity $groupName -Members $obj.DistinguishedName -ErrorAction Stop
+        Write-Host "Successfully added $($obj.Name) to $groupName."
     } catch {
-        Write-Warning "Failed to add $($Object.Name) to ${GroupName}: $_"
+        Write-Warning "Failed to add $($obj.Name) to ${groupName}: $_"
     }
 }
