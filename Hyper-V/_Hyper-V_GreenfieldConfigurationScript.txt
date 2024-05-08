@@ -1,8 +1,6 @@
 INSTALL OPERATING SYSTEM
 The physical servers are not on the same VLAN as the PXE server, so they need to be built using the USB drive. At the time of this documentation, we are using Windows Server 2016 Datacenter with Desktop Experience. 
 
-**See Darren for USB drive**
-
 UPDATE OPERATING SYSTEM
 In order to get the Hyper-V Node communicating with the SCVMM server, the latest Windows Updates need to be installed on node prior to configuration. This is an essential and important step.
 
@@ -11,7 +9,6 @@ Take the normal steps to rename and join the domain. The name of the Hyper-V nod
 
 SET PERMISSIONS IN ACTIVE DIRECTORY
 The computer object, that is created in Active Directory after joining the node to the domain, will need to be added to specific groups for configuration to be successful. Use the PowerShell command below to add to the groups:
-
 
 Install-Module ActiveDirectory
 
@@ -23,30 +20,27 @@ $computer = Get-ADComputer -Identity $computerName
 
 # Add the computer object to all groups
 $ADGroups | ForEach-Object {Add-ADGroupMember -Identity $_ -Members $computer}
+
 SET PERMISSIONS FOR LOCAL ADMINISTRATOR
 These accounts need to be added the local administrator group on the Hyper-V node to for configuration to be successful. Use the PowerShell command below to add the domain users to the local admin group on the node:
-
-
 $domain = "healthwise.org"
 $users = "SCVMM_HostMgmnt","veeam_backup"
 $users | ForEach-Object {net localgroup Administrators "$domain\$_" /add}
+
 INSTALL THE ROLES: HYPER-V, FAILOVER CLUSTER, MULTIPATH I/O (MPIO)
 Install the Server Roles for the Hyper-V Node. This will require the server to reboot, but all lines can be executed before reboot:
-
-
 #Install Hyper-V, Install Failover Clustering, MPIO
 Add-WindowsFeature -Name Hyper-V -IncludeAllSubFeature -IncludeManagementTools
 Add-WindowsFeature -Name Failover-Clustering -IncludeAllSubFeature -IncludeManagementTools
 Add-WindowsFeature -Name Multipath-IO -IncludeAllSubFeature -IncludeManagementTools
+
 HYPER-V CONFIGURATION
 Enable Live Migrations
-
 Simultaneous migrations set to 8.
 
 On Advanced Features, ensure that Kerberos is set for Authentication and SMB is set for Performance.
 
 Enable Storage Migrations
-
 Simultaneous migrations set to 8.
 
 Allow Enhanced Session Mode

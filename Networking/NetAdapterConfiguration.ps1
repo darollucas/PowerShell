@@ -34,7 +34,7 @@ $adapters | ForEach-Object { $index = [Array]::IndexOf($adapters, $_); Write-Hos
 $selectedAdapterIndex = Read-Host "Enter the number of the adapter you wish to configure"
 $selectedAdapter = $adapters[$selectedAdapterIndex]
 
-if ($selectedAdapter -eq $null) {
+if ($null -eq $selectedAdapter) {
     Write-Error "Invalid selection."
     exit
 }
