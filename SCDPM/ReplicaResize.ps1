@@ -17,89 +17,213 @@
 .PARAMETER LogFile
     The path to the log file where actions will be logged.
 #>
+#Resized Replica Volume located on DPM 2016 +UR1 Modern Backup Storage.
 
-param (
-    [string]$DpmServer = $env:COMPUTERNAME,
-    [string]$LogFile = "ResizeReplica.log"
-)
+$version="V1.0"
 
-# Initial Setup
-$version = "2.0"
-$ErrorActionPreference = "Stop"
-[uint64]$GB = 1GB
-$confirmPreference = "None"
+$ErrorActionPreference = "silentlycontinue"
 
-# Function to display help information
-function Show-Help {
-    cls
-    Write-Host "Version: $version" -ForegroundColor Cyan
-    Write-Host "Script Usage" -ForegroundColor Green
-    Write-Host "1. Lists all protected data sources and their current replica sizes." -ForegroundColor Green
-    Write-Host "2. User selects a data source to resize the replica for." -ForegroundColor Green
-    Write-Host "3. User enters the new replica size in GB." -ForegroundColor Green
-    Write-Host "Actions and results are logged to $LogFile`n" -ForegroundColor White
+
+
+[uint64] $GB=1048576000 #Multiple of 10MB
+
+$logfile="ResizeReplica.LOG"
+
+$confirmpreference = "None"
+
+
+
+function Show_help
+
+{
+
+cls
+
+write-host "Version: $version" -foregroundcolor cyan
+
+write-host "Script Usage" -foregroundcolor green
+
+write-host "A: Script lists all protected data sources plus current Replica size." -foregroundcolor green
+write-host "B: User Selects data source to resize replica for." -foregroundcolor green
+
+write-host "C: User enters new Replica Size in GB." -foregroundcolor green
+
+write-host "Appending inputs and results to log file $logfile`n" -foregroundcolor white
+
 }
 
-# Log initial information
-Add-Content -Path $LogFile -Value "**********************************"
-Add-Content -Path $LogFile -Value "Version $version"
-Add-Content -Path $LogFile -Value (Get-Date)
-Show-Help
+"" >>$logfile
 
-# User confirmation
-$confirmation = Read-Host "`nThis script is intended for SCDPM 2022 or later. Press C to continue."
-if ($confirmation -ne "C") {
-    Write-Host "Exiting..."
-    Exit 0
+"**********************************" >> $logfile
+
+"Version $version" >> $logfile
+
+get-date >> $logfile
+
+show_help
+
+$C=Read-Host "`nThis script is only intended to be ran on DPM 2016 + UR1 or later - Press C to continue. "
+
+write-host $line -foregroundcolor white
+$line = "This script is only intended to be ran on DPM 2016 + UR1 or later - Press C to continue."
+
+$line = $line + $C
+
+$line >> $logfile
+
+if ($C -NotMatch "C")
+
+{
+
+write-host "Exiting...."
+
+Exit 0
+
 }
 
-# Connect to DPM Server
-Write-Host "Connecting to DPM server $DpmServer..."
-$DPM = Connect-DPMServer -DpmServerName $DpmServer
-if (-not $DPM) {
-    Write-Host "Failed to connect to DPM server $DpmServer" -ForegroundColor Red
-    Exit 1
+write-host "User Accepts all responsibilities by entering a data source" -foregroundcolor white -backgroundcolor blue
+
+
+$DPM = Connect-dpmserver -Dpmservername (&hostname)
+
+$DPMservername = (&hostname)
+
+"Selected DPM server = $DPMservername" >> $logfile
+
+write-host "`nRetrieving list of data sources on $Dpmservername`n" -foregroundcolor green
+
+$pglist = @(Get-ProtectionGroup $DPMservername) # Created PGlist as array in case we have a single protection group.
+
+$ds=@()
+$count = 0
+
+$dscount = 0
+
+foreach ($count in 0..($pglist.count - 1))
+
+{
+
+$ds += @(get-datasource $pglist[$count]) # Created DS as array in case we have a single protection group.
+
 }
-Add-Content -Path $LogFile -Value "Connected to DPM server $DpmServer"
 
-# Retrieve data sources
-Write-Host "`nRetrieving list of data sources on $DpmServer`n" -ForegroundColor Green
-$pgList = Get-ProtectionGroup -DPMServer $DPM
-$dsList = @()
-foreach ($pg in $pgList) {
-    $dsList += Get-Datasource -ProtectionGroup $pg
+if ( Get-Datasource $DPMservername -inactive) {$ds += Get-Datasource $DPMservername -inactive}
+
+
+
+$i=0
+
+write-host "Index Protection Group     Computer             Path                                     Replica-Size Bytes"
+
+write-host "-----------------------------------------------------------------------------------------------------------"
+
+foreach ($l in $ds)
+
+{
+
+"[{0,3}] {1,-20} {2,-20} {3,-40} {4}" -f $i, $l.ProtectionGroupName, $l.psinfo.netbiosname, $l.logicalpath, $l.replicasize
+
+$i++
 }
 
-# Display data sources
-$i = 0
-Write-Host "Index Protection Group     Computer             Path                                     Replica-Size (Bytes)"
-Write-Host "-----------------------------------------------------------------------------------------------------------"
-foreach ($ds in $dsList) {
-    Write-Host ("[{0,3}] {1,-20} {2,-20} {3,-40} {4}" -f $i, $ds.ProtectionGroupName, $ds.Computer, $ds.Path, $ds.ReplicaSize)
-    $i++
+$DSname=read-host "`nEnter a data source index number from the list above."
+
+write-host ""
+
+if (!$DSname)
+
+{
+
+write-host "No datasource selected, exiting.`n" -foregroundcolor yellow
+
+"Aborted on no Datasource index selected" >> $logfile
+
+exit 0
+
 }
 
-# User selects data source
-$dsIndex = Read-Host "Enter the index of the data source to resize"
-if ($dsIndex -lt 0 -or $dsIndex -ge $dsList.Count) {
-    Write-Host "Invalid index" -ForegroundColor Red
-    Exit 1
+$DSselected=$ds[$DSname]
+
+if (!$DSselected)
+
+{
+
+write-host "No valid datasource selected, exiting. `n" -foregroundcolor yellow
+
+"Aborted on invalid Datasource index number" >> $logfile
+
+exit 0
 }
-$selectedDS = $dsList[$dsIndex]
-Add-Content -Path $LogFile -Value "Selected data source: $($selectedDS.ProtectionGroupName) - $($selectedDS.Computer) - $($selectedDS.Path)"
 
-# User enters new replica size
-$newReplicaSizeGB = Read-Host "Enter the new replica size in GB"
-if (-not [uint64]::TryParse($newReplicaSizeGB, [ref]$null)) {
-    Write-Host "Invalid size entered" -ForegroundColor Red
-    Exit 1
+
+
+if ($DSselected.Replicasize -gt 0)
+
+{
+
+$Replicasize=[math]::round($DSselected.Replicasize/$GB,1)
+
+$line=("Current Replica Size = {0} GB for selected data source: $DSselected.name" -f $Replicasize)
+
+$line >> $logfile
+
+write-host $line`n -foregroundcolor white
+
 }
-$newReplicaSizeBytes = [uint64]$newReplicaSizeGB * $GB
-Add-Content -Path $LogFile -Value "New replica size: $newReplicaSizeGB GB ($newReplicaSizeBytes Bytes)"
 
-# Resize replica
-Write-Host "Resizing replica for $($selectedDS.ProtectionGroupName) - $($selectedDS.Computer) - $($selectedDS.Path)..."
-Resize-DPMReplica -Datasource $selectedDS -ReplicaSize $newReplicaSizeBytes
-Add-Content -Path $LogFile -Value "Resized replica for $($selectedDS.ProtectionGroupName) to $newReplicaSizeBytes Bytes"
 
-Write-Host "Replica resize completed successfully" -ForegroundColor Green
+[uint64] $NewReplicaGB=read-host "Enter new Replica size in GB"
+
+if ($Replicasize -ge $NewReplicaGB)
+{
+
+write-host New Replica size must be greater than current size of $Replicasize GB - Exiting.
+
+$line =("New Replica size must be greater than current size - Exiting")
+
+$line >> $logfile
+
+exit 0
+
+}
+
+$line=("Processing Replica Resize Request of {0} GB.  Please wait..." -f $NewReplicaGB)
+
+$line >> $logfile
+
+write-host $line`n -foregroundcolor white
+
+
+
+# execute the resize
+
+Edit-DPMDiskAllocation -DataSource $DSSelected -ReplicaSize ($NewReplicaGB*$GB)
+
+
+
+$line = "Resize Process Done ! "
+
+write-host $line
+$datetime = get-date
+
+$line = $line + $datetime
+
+$line >> $logfile
+
+$line="Do you want to View $logfile file Y/N ? "
+
+write-host $line -foregroundcolor white
+
+$Y=read-host
+
+$line = $line + $Y
+
+$line >> $logfile
+
+if ($Y -ieq "Y")
+
+{
+
+Notepad $logfile
+
+}
