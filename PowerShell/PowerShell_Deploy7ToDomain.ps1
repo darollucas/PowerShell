@@ -1,6 +1,30 @@
+<#
+.SYNOPSIS
+This PowerShell script deploys PowerShell Core to all domain-joined machines.
+
+.DESCRIPTION
+The script retrieves a list of all domain-joined computers and remotely installs PowerShell Core.
+It prompts for domain administrator credentials once and applies the installation across all machines.
+If PowerShell Core is already installed and remoting is enabled, it will skip the installation.
+
+.COMPATIBILITY
+This script requires PowerShell 5.1 or newer and administrative privileges.
+It has been designed for use with Windows Server 2012 and later.
+
+.NOTES
+Script Name: Deploy-PowerShellCore.ps1
+Created By: TechBase IT
+Version: 1.0
+
+.EXAMPLE
+.\Deploy-PowerShellCore.ps1
+
+This will install PowerShell Core on all domain-joined machines.
+#>
+
 # Define PowerShell Core installation details
-$installerUrl = "https://github.com/PowerShell/PowerShell/releases/download/v7.4.6/PowerShell-7.4.6-win-x64.msi"
-$installerPath = "C:\Temp\PowerShell-7.4.6-win-x64.msi"
+$installerUrl = "https://github.com/PowerShell/PowerShell/releases/download/v7.5.0/PowerShell-7.5.0-win-x64.msi"
+$installerPath = "C:\Temp\PowerShell-7.5.0-win-x64.msi"
 
 # Prompt for credentials once
 $global:credential = Get-Credential -Message "Enter domain admin credentials to deploy PowerShell Core"
