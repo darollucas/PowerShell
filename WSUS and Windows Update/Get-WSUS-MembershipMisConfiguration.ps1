@@ -64,15 +64,6 @@ function Get-RebootStatus {
     ...
 }
 
-# Main script logic follows here...
-param (
-    [string]$Domain = "example.com",
-    [string]$WSUSServer = "wsus.example.com",
-    [string]$EmailTo = "ServiceDesk@example.com",
-    [string]$EmailFrom = "NoReply@example.com",
-    [string]$SMTPServer = "smtp.example.com"
-)
-
 function Get-WSUSGroupMembership {
     param (
         [string]$Domain
