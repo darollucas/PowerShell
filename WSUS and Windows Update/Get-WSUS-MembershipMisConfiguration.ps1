@@ -51,26 +51,10 @@ param (
     [string]$EmailFrom = "",
 
     [Parameter(Mandatory=$false)]
-    [string]$SMTPServer = ""
-)
+    [string]$SMTPServer = "",
 
-function Test-Administrator {
-    <# .DESCRIPTION Checks if the script is run as Administrator and exits if not. #>
-    ...
-}
-
-function Get-RebootStatus {
-    <# .DESCRIPTION Checks if a system reboot is required and exits the script if so. #>
-    ...
-}
-
-# Main script logic follows here...
-param (
-    [string]$Domain = "example.com",
-    [string]$WSUSServer = "wsus.example.com",
-    [string]$EmailTo = "ServiceDesk@example.com",
-    [string]$EmailFrom = "NoReply@example.com",
-    [string]$SMTPServer = "smtp.example.com"
+    [Parameter(Mandatory=$false)]
+    [string]$OutputFile = "" # Optional: Path to save the report
 )
 
 function Get-WSUSGroupMembership {
@@ -78,7 +62,13 @@ function Get-WSUSGroupMembership {
         [string]$Domain
     )
     # Placeholder for logic to retrieve computers and their WSUS group memberships
-    # This should be replaced with actual code to query AD or WSUS as needed
+    # Replace this with actual code to query AD or WSUS
+    # Example: Return a list of computers and their WSUS groups
+    return @(
+        @{ ComputerName = "Computer1"; WSUSGroups = @("Group1", "Group2") },
+        @{ ComputerName = "Computer2"; WSUSGroups = @() },
+        @{ ComputerName = "Computer3"; WSUSGroups = @("Group1") }
+    )
 }
 
 function Send-EmailReport {
@@ -103,26 +93,44 @@ function Send-EmailReport {
 $MultipleWSUSGroups = @()
 $NoWSUSGroup = @()
 
-# Example placeholders for logic to populate $MultipleWSUSGroups and $NoWSUSGroup based on actual infrastructure
-# These should be replaced with the actual logic to check WSUS group memberships
+# Get WSUS group membership data
+$computers = Get-WSUSGroupMembership -Domain $Domain
 
-# If there are computers to report, prepare and send the email
-if ($MultipleWSUSGroups.Count -gt 0 -or $NoWSUSGroup.Count -gt 0) {
-    $totalMultiGroup = $MultipleWSUSGroups.Count
-    $totalNoGroup = $NoWSUSGroup.Count
-    
-    $body = @"
-    Computers in more than one WSUS group: $totalMultiGroup
-    Computers not in any WSUS group: $totalNoGroup
+# Analyze WSUS group memberships
+foreach ($computer in $computers) {
+    if ($computer.WSUSGroups.Count -gt 1) {
+        $MultipleWSUSGroups += $computer.ComputerName
+    } elseif ($computer.WSUSGroups.Count -eq 0) {
+        $NoWSUSGroup += $computer.ComputerName
+    }
+}
 
-    Computers in multiple groups:
-    $($MultipleWSUSGroups -join "`n")
+# Prepare report content
+$report = @"
+WSUS Group Membership Report for Domain: $Domain
 
-    Computers not in any group:
-    $($NoWSUSGroup -join "`n")
+Computers in more than one WSUS group: $($MultipleWSUSGroups.Count)
+Computers not in any WSUS group: $($NoWSUSGroup.Count)
+
+Computers in multiple groups:
+$($MultipleWSUSGroups -join "`n")
+
+Computers not in any group:
+$($NoWSUSGroup -join "`n")
 "@
 
+# Output to console
+Write-Output $report
+
+# Save to file if OutputFile is provided
+if ($OutputFile) {
+    $report | Out-File -FilePath $OutputFile
+    Write-Output "Report saved to: $OutputFile"
+}
+
+# Send email if EmailTo is provided
+if ($EmailTo) {
     $subject = "WSUS Group Membership Report for $Domain"
-    
-    Send-EmailReport -EmailTo $EmailTo -EmailFrom $EmailFrom -SMTPServer $SMTPServer -Subject $subject -Body $body
+    Send-EmailReport -EmailTo $EmailTo -EmailFrom $EmailFrom -SMTPServer $SMTPServer -Subject $subject -Body $report
+    Write-Output "Email sent to: $EmailTo"
 }

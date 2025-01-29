@@ -14,7 +14,7 @@ It has been designed for use with Windows Server 2012 and later.
 .NOTES
 Script Name: Deploy-PowerShellCore.ps1
 Created By: TechBase IT
-Version: 1.0
+Version: 1.2
 
 .EXAMPLE
 .\Deploy-PowerShellCore.ps1
